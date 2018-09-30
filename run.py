@@ -109,6 +109,7 @@ def save_setup(initroot, e1, e2, e3, de1, de2, de3, de4):
     initroot.destroy()
     random_window()
 
+
 def init(initroot):
 
     Label(initroot, text="分层因素：从重要至次要").grid(row=0)
@@ -145,7 +146,6 @@ def init(initroot):
 
     initroot.mainloop()
 
-
 def random_window():
     root = Tk()
     # root.geometry('500x750')
@@ -169,10 +169,12 @@ def random_window():
         # def ins(insroot,i_id):
         #     insroot.destroy()
         #     return i_id.get()
-        if i_id in grouplst.keys():
-            messagebox.showerror("错误", "院号已存在")
-            return -1
-        return i_id
+        if i_id is not None and i_id.strip() != '':
+            if i_id in grouplst.keys():
+                messagebox.showerror("错误", "院号已存在")
+                return -1
+            return i_id
+        return -1
 
     def add1():
         age = 0
@@ -187,7 +189,6 @@ def random_window():
         last_id.set(i_id)
         last_group.set(grouplst[i_id])
         # print(randomset)
-
 
     def add2():
         age = 1
