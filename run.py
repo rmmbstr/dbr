@@ -1,23 +1,25 @@
 import numpy as np
-import csv
-from tkinter import filedialog
-from tkinter import *
-import pickle
+from tkinter import filedialog, simpledialog, messagebox
+from tkinter import Label, Entry, StringVar, Button, Menu, Tk, Scrollbar
+import pickle, collections
 
 class Dataset:
-    def __init__(self, deltas, levels, randoms):
+    def __init__(self, deltas, levels, randoms, grouplst):
         self.delta = deltas
         self.level = levels
         self.random = randoms
+        self.grouplst = grouplst
     def getdelta(self):
         return self.delta
     def getlevel(self):
         return self.level
     def getrandom(self):
         return self.random
+    def getlist(self):
+        return self.grouplst
 
 
-def randomize(age, gender, center, randomset):
+def randomize(age, gender, center, randomset, i_id):
 
     # treat_a=0 treat_b=1
     # male=0 female=1
@@ -40,34 +42,52 @@ def randomize(age, gender, center, randomset):
          randomset[1][0][1][0]+randomset[1][1][0][0]+randomset[1][1][1][0]-randomset[0][0][0][1]-randomset[0][0][1][1]-\
          randomset[0][1][0][1]-randomset[0][1][1][1]-randomset[1][0][0][1]-randomset[1][0][1][1]-randomset[1][1][0][1]-\
          randomset[1][1][1][1]
+    treat = 0
     if np.abs(d1) >= delta_1:
         if d1 > 0:
-            randomset[center][gender][age][1] = randomset[center][gender][age][1] + 1
+            treat = 1
+            # randomset[center][gender][age][1] = randomset[center][gender][age][1] + 1
         else:
-            randomset[center][gender][age][0] = randomset[center][gender][age][0] + 1
+            treat = 0
+            # randomset[center][gender][age][0] = randomset[center][gender][age][0] + 1
     elif np.abs(d2) >= delta_2:
         if d2 > 0:
-            randomset[center][gender][age][1] = randomset[center][gender][age][1] + 1
+            treat = 1
+            # randomset[center][gender][age][1] = randomset[center][gender][age][1] + 1
         else:
-            randomset[center][gender][age][0] = randomset[center][gender][age][0] + 1
+            treat = 0
+            # randomset[center][gender][age][0] = randomset[center][gender][age][0] + 1
     elif np.abs(d3) >= delta_3:
         if d3 > 0:
-            randomset[center][gender][age][1] = randomset[center][gender][age][1] + 1
+            treat = 1
+            # randomset[center][gender][age][1] = randomset[center][gender][age][1] + 1
         else:
-            randomset[center][gender][age][0] = randomset[center][gender][age][0] + 1
+            treat = 0
+            # randomset[center][gender][age][0] = randomset[center][gender][age][0] + 1
     elif np.abs(d4) >= delta_4:
         if d4 > 0:
-            randomset[center][gender][age][1] = randomset[center][gender][age][1] + 1
+            treat = 1
+            # randomset[center][gender][age][1] = randomset[center][gender][age][1] + 1
         else:
-            randomset[center][gender][age][0] = randomset[center][gender][age][0] + 1
+            treat = 0
+            # randomset[center][gender][age][0] = randomset[center][gender][age][0] + 1
     else:
-        treat = np.random.choice([0, 1])
-        randomset[center][gender][age][treat] = randomset[center][gender][age][treat] + 1
+        # treat = np.random.choice([0, 1])
+        treat = 2
+        # randomset[center][gender][age][treat] = randomset[center][gender][age][treat] + 1
+    if treat == 0 or treat == 1:
+        randomset[center][gender][age][treat] += 1
+        grouplst[i_id] = "treat_a" if treat == 0 else "treat_b"
+    if treat == 2:
+        choice = np.random.choice([0, 1])
+        randomset[center][gender][age][choice] += 1
+        grouplst[i_id] = "treat_a" if choice == 0 else "treat_b"
+
     return randomset
 
 
 def save_setup(initroot, e1, e2, e3, de1, de2, de3, de4):
-    global delta_1, delta_2, delta_3, delta_4, level_1, level_2, level_3, randomset
+    global delta_1, delta_2, delta_3, delta_4, level_1, level_2, level_3, randomset, grouplst
     randomset = {0:
                      {0: {0: {0: 0, 1: 0},
                           1: {0: 0, 1: 0}},
@@ -85,6 +105,7 @@ def save_setup(initroot, e1, e2, e3, de1, de2, de3, de4):
     level_1 = e1
     level_2 = e2
     level_3 = e3
+    grouplst = collections.OrderedDict()
     initroot.destroy()
     random_window()
 
@@ -120,14 +141,14 @@ def init(initroot):
     de3.grid(row=3, column=3)
     de4.grid(row=4, column=3)
 
-    Button(initroot, text='确定', command=lambda : save_setup(initroot, e1.get(),e2.get(),e3.get(),de1.get(),de2.get(),de3.get(),de4.get())).grid(row=5, column=1, sticky=W, pady=4)
+    Button(initroot, text='确定', command=lambda: save_setup(initroot, e1.get(),e2.get(),e3.get(),de1.get(),de2.get(),de3.get(),de4.get())).grid(row=5, column=1, pady=4)
 
     initroot.mainloop()
 
 
 def random_window():
     root = Tk()
-    root.geometry('500x750')
+    # root.geometry('500x750')
 
     # randomset = {'param': {'gender': {'classify': ['male', 'female'],
     #                                   'level': 0},
@@ -138,13 +159,33 @@ def random_window():
     #              'delta': [5, 5, 3, 3],  # delta level 0-total
     #              'data': {[0, 0, 0]: [0, 1], [0, 0, 1]: [1, 1]}}  # data level 0-max: A,B
 
+    def insert_id():
+        i_id = simpledialog.askstring("请输入", "输入病人院号")
+        # Label(insert, text="输入病人院号：").grid(row=0)
+        # i_id = Entry(insert)
+        # i_id.grid(row=0, column=1)
+        # Button(insert, text="确定", command=lambda: ins(insert, i_id)).grid(row=1, column=1)
+        # insert.mainloop()
+        # def ins(insroot,i_id):
+        #     insroot.destroy()
+        #     return i_id.get()
+        if i_id in grouplst.keys():
+            messagebox.showerror("错误", "院号已存在")
+            return -1
+        return i_id
+
     def add1():
         age = 0
         gender = 0
         center = 0
-        randomize(age, gender, center, randomset)
+        i_id = insert_id()
+        if i_id == -1:
+            return
+        randomize(age, gender, center, randomset, i_id)
         v1.set(randomset[center][gender][age][0])
         v2.set(randomset[center][gender][age][1])
+        last_id.set(i_id)
+        last_group.set(grouplst[i_id])
         # print(randomset)
 
 
@@ -152,27 +193,42 @@ def random_window():
         age = 1
         gender = 0
         center = 0
-        randomize(age, gender, center, randomset)
+        i_id = insert_id()
+        if i_id == -1:
+            return
+        randomize(age, gender, center, randomset, i_id)
         v3.set(randomset[center][gender][age][0])
         v4.set(randomset[center][gender][age][1])
+        last_id.set(i_id)
+        last_group.set(grouplst[i_id])
         # print(randomset)
 
     def add3():
         age = 0
         gender = 1
         center = 0
-        randomize(age, gender, center, randomset)
+        i_id = insert_id()
+        if i_id == -1:
+            return
+        randomize(age, gender, center, randomset, i_id)
         v5.set(randomset[center][gender][age][0])
         v6.set(randomset[center][gender][age][1])
+        last_id.set(i_id)
+        last_group.set(grouplst[i_id])
         # print(randomset)
 
     def add4():
         age = 1
         gender = 1
         center = 0
-        randomize(age, gender, center, randomset)
+        i_id = insert_id()
+        if i_id == -1:
+            return
+        randomize(age, gender, center, randomset, i_id)
         v7.set(randomset[center][gender][age][0])
         v8.set(randomset[center][gender][age][1])
+        last_id.set(i_id)
+        last_group.set(grouplst[i_id])
         # print(randomset)
 
 
@@ -180,49 +236,55 @@ def random_window():
         age = 0
         gender = 0
         center = 1
-        randomize(age, gender, center, randomset)
+        i_id = insert_id()
+        if i_id == -1:
+            return
+        randomize(age, gender, center, randomset, i_id)
         v9.set(randomset[center][gender][age][0])
         v10.set(randomset[center][gender][age][1])
+        last_id.set(i_id)
+        last_group.set(grouplst[i_id])
 
     def add6():
         age = 1
         gender = 0
         center = 1
-        randomize(age, gender, center, randomset)
+        i_id = insert_id()
+        if i_id == -1:
+            return
+        randomize(age, gender, center, randomset, i_id)
         v11.set(randomset[center][gender][age][0])
         v12.set(randomset[center][gender][age][1])
+        last_id.set(i_id)
+        last_group.set(grouplst[i_id])
 
     def add7():
         age = 0
         gender = 1
         center = 1
-        randomize(age, gender, center, randomset)
+        i_id = insert_id()
+        if i_id == -1:
+            return
+        randomize(age, gender, center, randomset, i_id)
         v13.set(randomset[center][gender][age][0])
         v14.set(randomset[center][gender][age][1])
+        last_id.set(i_id)
+        last_group.set(grouplst[i_id])
 
     def add8():
         age = 1
         gender = 1
         center = 1
-        randomize(age, gender, center, randomset)
+        i_id = insert_id()
+        if i_id == -1:
+            return
+        randomize(age, gender, center, randomset, i_id)
         v15.set(randomset[center][gender][age][0])
         v16.set(randomset[center][gender][age][1])
+        last_id.set(i_id)
+        last_group.set(grouplst[i_id])
 
-    def save_csv():
-        data = [['0' for col in range(3)] for row in range(3)]
-        data[0] = ['treat_a,treat_b', 'center1', 'center2']
-        data[1][0] = 'male'
-        data[1][1] = str(randomset[0][0][0])+','+str(randomset[0][0][1])
-        data[1][2] = str(randomset[1][0][0])+','+str(randomset[1][0][1])
-        data[2][0] = 'female'
-        data[2][1] = str(randomset[0][1][0]) + ',' + str(randomset[0][1][1])
-        data[2][2] = str(randomset[1][1][0]) + ',' + str(randomset[1][1][1])
-        filename = filedialog.asksaveasfilename(filetypes=[('csv文件', '.csv')])
-        if filename != '':
-            with open(filename, 'w', newline='') as csvfile:
-                w = csv.writer(csvfile)
-                for row in data:
-                    w.writerow(row)
+
 
     v1 = StringVar(root)
     v2 = StringVar(root)
@@ -240,6 +302,10 @@ def random_window():
     v14 = StringVar(root)
     v15 = StringVar(root)
     v16 = StringVar(root)
+
+    last_id = StringVar(root)
+    last_group = StringVar(root)
+    last_group.set(" ")
 
     # global level_1,level_2,level_3
     Label(root, text=level_3+'1', height=1).grid(row=3, column=1, padx=10, pady=10)
@@ -291,6 +357,9 @@ def random_window():
     Label(root, textvariable=v15, height=1).grid(row=14, column=6, padx=10, pady=10)
     Label(root, textvariable=v16, height=1).grid(row=14, column=8, padx=10, pady=10)
 
+    Label(root, text="最近的输入:").grid(row=0, column=9,padx=10, pady=10)
+    Label(root, textvariable=last_id).grid(row=1, column=9,padx=10, pady=10)
+    Label(root, textvariable=last_group).grid(row=1, column=10,padx=10, pady=10)
     Button(root, text='add', height=1, command=add1).grid(row=0, column=4, padx=10, pady=10)
     Button(root, text='add', height=1, command=add2).grid(row=2, column=4, padx=10, pady=10)
     Button(root, text='add', height=1, command=add3).grid(row=4, column=4, padx=10, pady=10)
@@ -333,15 +402,16 @@ def random_window():
     fileMenu.add_command(label='新建', command=lambda: init(root))
     fileMenu.add_command(label='打开', command=lambda: load_pickle(root))
     fileMenu.add_command(label='保存', command=save_pickle)
-    # fileMenu.add_command(label='导出至csv')
+    fileMenu.add_command(label='导出至文件', command=save_csv)
     menu.add_cascade(label='文件', menu=fileMenu)
 
     root.config(menu=menu)
+    Scrollbar(root, orient="vertical")
     root.mainloop()
 
 
 def save_pickle():
-    r = Dataset([delta_1,delta_2,delta_3,delta_4],[level_1,level_2,level_3],randomset)
+    r = Dataset([delta_1,delta_2,delta_3,delta_4],[level_1,level_2,level_3],randomset,grouplst)
     filename = filedialog.asksaveasfilename()
     if filename != '':
         with open(filename, 'wb') as pkfile:
@@ -354,7 +424,7 @@ def load_pickle(root):
     if filename != '':
         with open(filename, 'rb') as pkfile:
             r = pickle.load(pkfile)
-        global delta_1,delta_2,delta_3,delta_4,level_1,level_2,level_3, randomset
+        global delta_1,delta_2,delta_3,delta_4,level_1,level_2,level_3, randomset, grouplst
         delta_1 = r.getdelta()[0]
         delta_2 = r.getdelta()[1]
         delta_3 = r.getdelta()[2]
@@ -363,8 +433,30 @@ def load_pickle(root):
         level_2 = r.getlevel()[1]
         level_3 = r.getlevel()[2]
         randomset = r.getrandom()
+        grouplst = r.getlist()
         root.destroy()
         random_window()
+
+
+def save_csv():
+    data = [['0' for col in range(3)] for row in range(3)]
+    data[0] = ['treat_a,treat_b', 'center1', 'center2']
+    data[1][0] = 'male'
+    data[1][1] = str(randomset[0][0][0])+','+str(randomset[0][0][1])
+    data[1][2] = str(randomset[1][0][0])+','+str(randomset[1][0][1])
+    data[2][0] = 'female'
+    data[2][1] = str(randomset[0][1][0]) + ',' + str(randomset[0][1][1])
+    data[2][2] = str(randomset[1][1][0]) + ',' + str(randomset[1][1][1])
+    filename = filedialog.asksaveasfilename(filetypes=[('csv文件', '.csv')])
+    if filename != '':
+        if not filename.endswith(".csv"):
+            filename += ".csv"
+        with open(filename, 'w') as csvfile:
+            csvfile.write("patient_id,treat\n")
+            for key in grouplst:
+                csvfile.write(key+","+grouplst[key]+"\n")
+
+
 if __name__ == '__main__':
     root = Tk()
     root.geometry('500x400')
@@ -374,7 +466,7 @@ if __name__ == '__main__':
     fileMenu.add_command(label='新建', command=lambda: init(root))
     fileMenu.add_command(label='打开', command=lambda: load_pickle(root))
     fileMenu.add_command(label='保存', command=save_pickle)
-    # fileMenu.add_command(label='导出至csv')
+    fileMenu.add_command(label='导出至文件', command=save_csv)
     menu.add_cascade(label='文件', menu=fileMenu)
 
     root.config(menu=menu)
